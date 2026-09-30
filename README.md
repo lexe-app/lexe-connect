@@ -352,10 +352,15 @@ the holders of the connection string can compute the address.
   responds `404 Not Found` until the blob arrives, then `200 OK` with
   the raw blob bytes as the body.
 - The mailbox MUST reject POSTs to an occupied address with
-  `409 Conflict`, so the first write wins. Blobs persist until TTL
-  expiry, surviving reads, so the REQUESTER can safely retry. Responses
-  are a small JSON object plus constant HPKE overhead, so the mailbox
-  MAY cap blob size.
+  `409 Conflict`, so the first write wins. A WALLET that misses the
+  `200 OK` needs to retry, so the mailbox MUST accept a byte-identical
+  re-post with `200 OK`, and SHOULD NOT extend the TTL. Blobs persist
+  until TTL expiry, surviving reads, so the REQUESTER can safely retry.
+  Responses are a small JSON object plus constant HPKE overhead, so the
+  mailbox MAY cap blob size.
+- The mailbox SHOULD allow cross-origin GETs, e.g. with
+  `Access-Control-Allow-Origin: *`, so browser-based REQUESTERs can poll
+  it.
 
 Lexe runs a public mailbox at `https://lexe.app/mailbox` with a 5 minute
 TTL. REQUESTERs are welcome to run their own.
