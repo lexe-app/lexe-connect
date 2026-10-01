@@ -1,6 +1,6 @@
 # LexeConnect
 
-*Version 1.0.0*
+*Version 1.0.1*
 <!-- Author: Max Fang, Lexe Corporation -->
 
 A simple and secure protocol for one-click credential sharing.
