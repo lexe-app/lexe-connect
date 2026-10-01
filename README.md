@@ -576,6 +576,14 @@ The `one_time_secret` stays in the `info` so that even if a keypair is
 reused across requests, violating the freshness MUST, each ciphertext
 remains bound to its one request.
 
+### Why the response carries no `v`
+
+The REQUESTER first matches a response to its outstanding request by
+`one_time_secret`, and that request records the `v` it chose. The WALLET
+rejects unrecognized versions without responding, so a response is always
+at its request's version, and an echoed `v` would only add a mismatch
+case with nothing to protect against.
+
 ### Prior Art
 
 - OAuth 2.0
