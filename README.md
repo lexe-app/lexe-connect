@@ -467,6 +467,57 @@ A mailbox is chosen by the REQUESTER rather than the WALLET, and Lexe's
 public mailbox holds only ciphertext, so an adopting WALLET's users can
 use it too.
 
+## Test vectors
+
+These vectors check an implementation of [Encryption](#encryption).
+Key pairs are derived as in the [RFC 9180] test vectors:
+
+- The REQUESTER's ephemeral key pair is `DeriveKeyPair(ikmR)`, where `ikmR`
+  is the bytes `0x00..=0x1f`.
+- The WALLET's ephemeral sender key pair is `DeriveKeyPair(ikmE)`, where
+  `ikmE` is the bytes `0x20..=0x3f`.
+
+Request:
+
+```
+https://lexe.app/connect?v=1&redirect_uri=https%3A%2F%2Fbillsplit.com%2Fcb&ephemeral_hpke_pubkey=b1f1b840de7a3241b02748cf9b05b74dc8c5e8451298738817bd76aa8ebe8c2b&one_time_secret=000102030405060708090a0b0c0d0e0f&account=%40janedoe&scopes=read_info,receive
+```
+
+| | Hex |
+|---|---|
+| `ikmR` | `000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f` |
+| `ephemeral_hpke_pubkey` (`pkR`) | `b1f1b840de7a3241b02748cf9b05b74dc8c5e8451298738817bd76aa8ebe8c2b` |
+| `ikmE` | `202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f` |
+| `info` | `4c657865436f6e6e6563742d7631000102030405060708090a0b0c0d0e0f` |
+| `aad` | `406a616e65646f65` |
+
+The plaintext is the exact bytes the WALLET encrypts, so field order
+matters here even though JSON does not.
+
+Granted plaintext:
+
+```json
+{"credential":"<client credential>","one_time_secret":"000102030405060708090a0b0c0d0e0f","account":"@janedoe","scopes":["read_info","receive"],"permissions":[],"expires_at":1821484800000}
+```
+
+Granted blob:
+
+```
+693658254630f73ad8da78fb331bf976cd42f90e0e9c9e83f40c51072a6f741718c87dfe078291112ed11fbd29fea41f7e497c02a693481c499717cb9629bf33148f84ebf928eb111ed0525e2d2cc20f23ed8043bba85f5bc6eed0b463e41461d1fc4b8238e0c59aea1e89b6041ebb0718ea5f8133994b74cd6aa22056e9e1827a5daac94185756c7a53dc4ab5d3c3f68aef2293063d337e3726489013a06e27ae68a35c9f8ae7b7fa819dafd8298949878936df24a556c2d92cd08241456aa0a7fc06f1d0562c0d0757c368b873f320f167487a45d80076451cf9135074fd7a81e94dde3e7f9ece9c5676
+```
+
+Error plaintext:
+
+```json
+{"error":"user_rejected","one_time_secret":"000102030405060708090a0b0c0d0e0f","account":"@janedoe"}
+```
+
+Error blob:
+
+```
+693658254630f73ad8da78fb331bf976cd42f90e0e9c9e83f40c51072a6f741718c87bfe1089865d609a0ba26eb6d951784f7004bc820c5d17d01cc09d02a23b15d4f9b4be24f711358601117843815b70add504a9a64d5ec6e8d1b361ec1768d5ad4ed03eb3c2cee24b80e04702fb5618b954c438dd0f6cc308a9225be3f0836b5dedff05a6d01574bfc9c06ccb2be20b0139
+```
+
 ## License
 
 This document is licensed under [CC-BY 4.0]. Any mention of "LexeConnect",
