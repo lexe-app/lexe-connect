@@ -112,8 +112,9 @@ REQUESTERs MAY additionally pass `requester_name` (string) and
 These params are specific to Lexe, so a WALLET adopting this protocol
 most likely defines its own. Each has a **grant class**:
 
-- **exact**: must be granted exactly as requested, or the request is rejected
-  outright.
+- **exact**: read-only on the approval screen. The WALLET MUST NOT let the
+  user change it, so the user either grants it exactly as requested or
+  rejects the whole request.
 - **prefill**: only prefills the field's value on the approval screen,
   which the user may freely change.
 
@@ -123,15 +124,19 @@ most likely defines its own. Each has a **grant class**:
 | `permissions` | exact | **Array of strings**, optional. Any explicitly requested fine-grained [permissions]. At least one scope or permission MUST be requested. |
 | `label` | prefill | **String**, optional. A suggested [label] for this credential. If unset, the WALLET chooses the prefill, e.g. the verified receiving domain. |
 | `expires_at` | prefill | **Unsigned integer**, optional. A suggested expiration time for the credential, in milliseconds since the UNIX epoch. If unset, the WALLET chooses the prefill, e.g. one year, or no expiration for spending credentials with a budget attached. |
-| `budget_limit`\* | prefill | **String**, optional. The budget limit, denominated in `budget_currency`. Serialized as a base-10 decimal string. |
-| `budget_currency`\* | prefill | **String**, required if `budget_limit` is set. The unit the budget is denominated in: `sat` for bitcoin, or a lowercased ISO 4217 code (e.g. `usd`, `eur`). |
-| `budget_period`\* | prefill | **String**, optional. How frequently the budget should reset. Options: `day`, `week`, `month`, or `never`. |
-| `budget_period_multiple`\* | prefill | **Unsigned integer**, optional. The multiple of `budget_period` between resets, e.g. the 5 in "every 5 days". Defaults to 1. MUST NOT be set if `budget_period` is `never`. |
-| `budget_first_reset`\* | prefill | **Unsigned integer**, optional. Time of the first budget reset, in milliseconds since the UNIX epoch. MUST be within one period of the approval time. MUST NOT be set if `budget_period` is `never`. |
-| `budget_utc_offset_secs`\* | prefill | **Signed integer**, optional. The timezone in which budget resets are computed, only relevant when `budget_period` is `month`. Expressed as a UTC offset in seconds: positive east of UTC, negative west. MUST be within ±14 hours. |
+| `budget_limit`\* | prefill | **String**, optional. A suggested budget limit, denominated in `budget_currency`. Serialized as a base-10 decimal string. |
+| `budget_currency`\* | exact | **String**, required if `budget_limit` is set. The unit the budget is denominated in: `sat` for bitcoin, or a lowercased ISO 4217 code (e.g. `usd`, `eur`). |
+| `budget_period`\* | exact | **String**, optional. How frequently the budget should reset. Options: `day`, `week`, `month`, or `never`. |
+| `budget_period_multiple`\* | exact | **Unsigned integer**, optional. The multiple of `budget_period` between resets, e.g. the 5 in "every 5 days". Defaults to 1. MUST NOT be set if `budget_period` is `never`. |
+| `budget_first_reset`\* | exact | **Unsigned integer**, optional. Time of the first budget reset, in milliseconds since the UNIX epoch. MUST be within one period of the approval time. MUST NOT be set if `budget_period` is `never`. |
+| `budget_utc_offset_secs`\* | exact | **Signed integer**, optional. The timezone in which budget resets are computed, only relevant when `budget_period` is `month`. Expressed as a UTC offset in seconds: positive east of UTC, negative west. MUST be within ±14 hours. |
 
-\* Planned. Budgets are not yet implemented, so Lexe ignores these
-params, and their definitions may change before release.
+Budget params the REQUESTER leaves unset are chosen by the WALLET and
+editable by the user.
+
+\* Planned. Budgets are not yet implemented, so Lexe rejects requests
+that set any of these params, and their definitions may change before
+release.
 
 [scopes]: https://rust.lexe.tech/types/auth/enum.scope
 [permissions]: https://rust.lexe.tech/types/command/struct.createclientrequest#structfield.permissions
@@ -177,8 +182,8 @@ An example approval screen:
   scheme and host when `redirect_uri` is set, e.g. "An unverified app
   (`myprotocol://`)". The rest of the uri is chosen by the REQUESTER, so it
   SHOULD NOT be displayed.
-- The WALLET MUST show all requested `exact` params (`scopes` and
-  `permissions`); the presentation is left to the WALLET.
+- The WALLET MUST show the requested scopes, permissions, and budget;
+  the presentation is left to the WALLET.
 - If `account` is set, the WALLET MUST display it as the REQUESTER's
   account, e.g. Account: `janedoe@gmail.com`;
   see [Request forwarding](#request-forwarding).
@@ -210,7 +215,7 @@ MUST ignore unrecognized fields, so new fields can be added without a
 version bump.
 
 Approval is all-or-nothing: a granted credential MUST carry the
-requested `exact` params (`scopes` and `permissions`) unchanged;
+requested `exact` params (e.g. `scopes` and `permissions`) unchanged;
 otherwise the WALLET MUST return `error`.
 
 ### Protocol fields
@@ -537,6 +542,15 @@ integrators they do nothing. They are instead defined in
 dangers. This way, these params are discoverable primarily by those who have
 done a close reading of the spec, taking security into consideration.
 
+### Why only the budget limit is a prefill
+
+The budget's schedule (every `budget_*` param but `budget_limit`) is the
+REQUESTER's to fix, e.g. to match its billing. The limit stays the user's
+call, so no REQUESTER can make a large limit the price of using its
+service. The response echoes the granted `budget_limit`, so a
+subscription that needs a minimum limit can decline a credential below
+it.
+
 ### Future policy knobs
 
 Future policy params could make grant classes negotiable, e.g. for
@@ -545,10 +559,7 @@ subscriptions that need a minimum budget:
 - `scopes_policy`: `exact` | `at_least` | `any`, default `exact`. Covers
   scopes and permissions jointly. `at_least` = the user may add but not
   remove; `any` = the user picks freely.
-- `budget_policy`: `exact` | `at_least` | `any`, default `any`. Budgets
-  cannot be meaningfully compared across periods, so `exact` and
-  `at_least` require the request's `budget_currency` and `budget_period`,
-  comparing `budget_limit` only.
+- `budget_limit_policy`: `exact` | `at_least` | `any`, default `any`.
 
 Both defaults reproduce today's behavior, so the knobs can be added
 without a version bump.
