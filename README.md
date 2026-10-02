@@ -121,8 +121,8 @@ most likely defines its own. Each has a **grant class**:
 |---|---|---|
 | `scopes` | exact | **Array of strings**, optional. The requested [scopes], e.g. `read_info`, `read_payments`, `receive`. At least one scope or permission MUST be requested. |
 | `permissions` | exact | **Array of strings**, optional. Any explicitly requested fine-grained [permissions]. At least one scope or permission MUST be requested. |
-| `label` | prefill | **String**, optional. A [label] for this credential. |
-| `expires_at` | prefill | **Unsigned integer**, optional. Expiration time for the credential, in milliseconds since the UNIX epoch. If unset, the WALLET chooses the prefill. The Lexe app defaults to one year, or to no expiration for spending credentials with a budget attached. |
+| `label` | prefill | **String**, optional. A suggested [label] for this credential. If unset, the WALLET chooses the prefill, e.g. the verified receiving domain. |
+| `expires_at` | prefill | **Unsigned integer**, optional. A suggested expiration time for the credential, in milliseconds since the UNIX epoch. If unset, the WALLET chooses the prefill, e.g. one year, or no expiration for spending credentials with a budget attached. |
 | `budget_limit`\* | prefill | **String**, optional. The budget limit, denominated in `budget_currency`. Serialized as a base-10 decimal string. |
 | `budget_currency`\* | prefill | **String**, required if `budget_limit` is set. The unit the budget is denominated in: `sat` for bitcoin, or a lowercased ISO 4217 code (e.g. `usd`, `eur`). |
 | `budget_period`\* | prefill | **String**, optional. How frequently the budget should reset. Options: `day`, `week`, `month`, or `never`. |
