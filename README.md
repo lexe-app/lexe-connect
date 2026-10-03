@@ -206,8 +206,8 @@ Once the user approves (or rejects) the request, the WALLET builds a
 response and delivers it via the `redirect_uri`, `post_url`, or
 `mailbox_url` from the request. If the request itself is invalid, e.g. a
 malformed param or an unrecognized version, the WALLET shows the user an
-error and delivers no response; the REQUESTER's request expiry covers
-this case.
+error and delivers no response; the REQUESTER's request expiration
+covers this case.
 
 The response is a single JSON object in one of two variants: success,
 containing `credential`, or error, containing `error`. The REQUESTER
@@ -360,9 +360,9 @@ the holders of the connection string can compute the address.
   `409 Conflict`, so the first write wins. A WALLET that misses the
   `200 OK` needs to retry, so the mailbox MUST accept a byte-identical
   re-post with `200 OK`, and SHOULD NOT extend the TTL. Blobs persist
-  until TTL expiry, surviving reads, so the REQUESTER can safely retry.
-  Responses are a small JSON object plus constant HPKE overhead, so the
-  mailbox MAY cap blob size.
+  until the TTL expires, surviving reads, so the REQUESTER can safely
+  retry. Responses are a small JSON object plus constant HPKE overhead,
+  so the mailbox MAY cap blob size.
 - The mailbox SHOULD allow cross-origin GETs, e.g. with
   `Access-Control-Allow-Origin: *`, so browser-based REQUESTERs can poll
   it.
@@ -443,7 +443,7 @@ forwarded request visibly names the attacker's account, and binds it into
 the HPKE `aad`, so rewriting it to the victim's name yields a response the
 attacker cannot decrypt. Plaintext `post_url` responses have no `aad`, so
 the WALLET echoes `account` instead, and the REQUESTER MUST reject a
-mismatch. Short request expiry and the approval screen warning
+mismatch. Short request expiration and the approval screen warning
 ([User Approval](#user-approval)) add defense in depth.
 
 ### Untrusted mailbox
