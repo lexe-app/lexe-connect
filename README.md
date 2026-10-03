@@ -104,8 +104,8 @@ These params are common to any WALLET implementing this protocol.
 | `metadata` | **String**, optional, at most 1024 UTF-8 bytes. Echoed back verbatim in the response. The REQUESTER may want to base64url encode a JSON blob here. |
 
 REQUESTERs MAY additionally pass `requester_name` (string) and
-`requester_icon` (url), displayed only for verified REQUESTERs; see
-[User Approval](#user-approval).
+`requester_icon` (`https://` url), displayed only for verified
+REQUESTERs; see [User Approval](#user-approval).
 
 ### Credential params
 
@@ -191,12 +191,12 @@ An example approval screen:
   approve only connections they initiated themselves; see
   [Request forwarding](#request-forwarding).
 - The REQUESTER MAY include `requester_name` (string) and `requester_icon`
-  (url) params in the connection string. These are chosen by the REQUESTER
-  itself, and a malicious REQUESTER would simply pass the branding of the
-  app it is impersonating, so the WALLET MUST NOT display them unless the
-  REQUESTER's identity has been verified out-of-band, e.g. via a
-  whitelist or an automated domain-verified registration flow, similar
-  to [OAuth Dynamic Client Registration].
+  (`https://` url) params in the connection string. These are chosen by
+  the REQUESTER itself, and a malicious REQUESTER would simply pass the
+  branding of the app it is impersonating, so the WALLET MUST NOT display
+  them unless the REQUESTER's identity has been verified out-of-band,
+  e.g. via a whitelist or an automated domain-verified registration flow,
+  similar to [OAuth Dynamic Client Registration].
 
 [OAuth Dynamic Client Registration]: https://www.rfc-editor.org/rfc/rfc7591.html
 
