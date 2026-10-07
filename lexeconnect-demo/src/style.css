@@ -100,12 +100,16 @@ canvas { padding: 12px; background: #fff; border-radius: 12px; }
 
 details { color: var(--muted); font-size: 0.85rem; text-align: left; }
 summary { cursor: pointer; }
+details p { margin: 0.5rem 0 0; }
 code, pre { font: 0.8rem/1.4 ui-monospace, monospace; }
 .copyable {
   display: flex;
   gap: 0.5rem;
   align-items: center;
   margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg);
+  border-radius: 10px;
 }
 .copyable code { flex: 1; word-break: break-all; }
 .copyable button {

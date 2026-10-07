@@ -352,6 +352,7 @@ async fn index(
     <a class="button" href="{connection_string}">Open in Lexe</a>
     <details>
       <summary>Connection string</summary>
+      <p>Paste it into the Lexe app's <em>Send</em> screen.</p>
       <div class="copyable">
         <code id="connection-string">{connection_string}</code>
         <button id="copy">Copy</button>
