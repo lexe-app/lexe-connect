@@ -90,11 +90,12 @@ struct Session {
 }
 
 /// How the WALLET delivers the response.
-#[derive(Copy, Clone, Eq, PartialEq, Deserialize)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 enum Mode {
-    Post,
+    #[default]
     Redirect,
+    Post,
     Mailbox,
 }
 
@@ -129,19 +130,19 @@ impl Session {
         let id = hex::encode(&rng.gen_bytes::<16>());
         let callback_url = format!("{}/s/{id}/callback", state.base_url);
         let delivery = match mode {
-            Mode::Post => Delivery::Post(callback_url),
             Mode::Redirect => Delivery::Redirect(callback_url),
+            Mode::Post => Delivery::Post(callback_url),
             Mode::Mailbox => Delivery::Mailbox(LEXE_MAILBOX_URL.to_owned()),
         };
         let params = CredentialRequestParams {
             delivery,
-            account: Some("@example".into()),
+            account: Some("@satoshi".into()),
             metadata: Some("example-metadata".into()),
             requester_name: None,
             requester_icon: None,
             scopes: ["read_info"].map(String::from).into(),
             permissions: BTreeSet::new(),
-            label: Some("Requester example".into()),
+            label: Some("LexeConnect Demo".into()),
             expires_at: None,
         };
         let pending = PendingRequest::new(&mut rng, params)
@@ -263,36 +264,34 @@ impl Session {
 }
 
 impl Mode {
-    const ALL: [Self; 3] = [Self::Post, Self::Redirect, Self::Mailbox];
+    const ALL: [Self; 3] = [Self::Redirect, Self::Post, Self::Mailbox];
 
     fn as_str(self) -> &'static str {
         match self {
-            Self::Post => "post",
             Self::Redirect => "redirect",
+            Self::Post => "post",
             Self::Mailbox => "mailbox",
         }
     }
 
     fn label(self) -> &'static str {
         match self {
-            Self::Post => "Post",
             Self::Redirect => "Redirect",
+            Self::Post => "Post",
             Self::Mailbox => "Mailbox",
         }
     }
 
     fn hint(self) -> &'static str {
         match self {
-            Self::Post => {
-                "After approving, the wallet POSTs the response here."
-            }
             Self::Redirect => {
-                "Meant for app-to-app sharing. After approving, the phone \
-                 opens the redirect uri, here this server's callback."
+                "For app-to-app flows. The phone opens this server's \
+                 callback url with the response."
             }
+            Self::Post => "The wallet POSTs the response to this server.",
             Self::Mailbox => {
-                "After approving, the wallet POSTs the response to Lexe's \
-                 mailbox, which this server polls."
+                "The wallet POSTs the response to Lexe's encrypted mailbox, \
+                 which this server polls."
             }
         }
     }
@@ -308,7 +307,7 @@ async fn new_session(
     State(state): State<Arc<AppState>>,
     Query(query): Query<NewQuery>,
 ) -> Response {
-    let mode = query.mode.unwrap_or(Mode::Post);
+    let mode = query.mode.unwrap_or_default();
     match state.create_session(mode) {
         Some(session) => {
             Redirect::to(&format!("/s/{}", session.id)).into_response()
@@ -346,7 +345,7 @@ async fn index(
     page(&format!(
         r#"<div id="request">
     <h2>Connect your Lexe wallet</h2>
-    <p class="hint">Scan with the Lexe app, or open the link on your phone.</p>
+    <p class="hint">Scan with the Lexe app to grant read-only access.</p>
     <nav class="modes">{modes}</nav>
     <p class="hint">{hint}</p>
     <canvas id="qr"></canvas>
@@ -431,7 +430,10 @@ async fn status(
             )
         }
     };
-    Html(body).into_response()
+    let mode = session.mode.as_str();
+    let try_again =
+        format!(r#"<a class="button" href="/new?mode={mode}">Try again</a>"#);
+    Html(format!("{body}{try_again}")).into_response()
 }
 
 /// Redirect delivery: the WALLET sent the user here with `?response=`. Once
