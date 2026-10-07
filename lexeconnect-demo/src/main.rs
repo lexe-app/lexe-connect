@@ -49,7 +49,7 @@ async fn main() -> anyhow::Result<()> {
 
     let base_url = std::env::args()
         .nth(1)
-        .expect("usage: requester-example <public-base-url>");
+        .expect("usage: lexeconnect-demo <public-base-url>");
     let state = Arc::new(AppState {
         base_url,
         mailbox_client: LexeConnectClient::new(DeployEnv::Prod)?,

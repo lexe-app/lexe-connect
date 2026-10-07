@@ -1,4 +1,4 @@
-# LexeConnect requester example
+# LexeConnect demo
 
 A small REQUESTER service for trying LexeConnect end to end.
 Each visitor gets a credential request shown as a QR code and link, in the
