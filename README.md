@@ -1,6 +1,6 @@
 # LexeConnect
 
-*Version 1.0.2*
+*Version 1.0.3*
 <!-- Author: Max Fang, Lexe Corporation -->
 
 A simple and secure protocol for one-click credential sharing.
@@ -62,6 +62,16 @@ having the ability to spend any funds.
 TODO(maxfangx): Once implemented, this would be a nice place to include a
 video which demonstrates this
 -->
+
+## Demo
+
+Lexe runs a live demo at <https://lexeconnect-demo.lexe.app>, which serves
+the [requester example]. To try the LexeConnect flow, scan the QR code with
+the Lexe app, or tap "Open in Lexe" on a phone with Lexe installed.
+
+![The LexeConnect demo page](https://r2.iexe.tech/lexe-connect/lexeconnect-demo.png)
+
+[requester example]: https://github.com/lexe-app/lexe-connect/tree/master/requester-example
 
 ## Credential request
 
