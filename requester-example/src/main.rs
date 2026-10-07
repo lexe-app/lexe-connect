@@ -23,7 +23,9 @@ use axum::{
     routing::get,
 };
 use lexe::{
+    anyhow,
     config::{DeployEnv, WalletEnvConfig},
+    tracing::{info, warn},
     types::auth::{ClientCredentials, CredentialsRef},
     util::hex,
     wallet::LexeWallet,
@@ -43,6 +45,8 @@ async fn main() -> anyhow::Result<()> {
     const LISTEN_ADDR: SocketAddr =
         SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 8000);
 
+    lexe::init_logger("info");
+
     let base_url = std::env::args()
         .nth(1)
         .expect("usage: requester-example <public-base-url>");
@@ -60,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/s/{id}/callback", get(redirected).post(posted))
         .with_state(state.clone());
     let listener = tokio::net::TcpListener::bind(LISTEN_ADDR).await?;
-    println!("Listening on {LISTEN_ADDR}; open {}/", state.base_url);
+    info!("Listening on {LISTEN_ADDR}; open {}/", state.base_url);
     axum::serve(listener, app).await?;
     Ok(())
 }
@@ -157,7 +161,7 @@ impl Session {
             tokio::spawn(async move {
                 if let Err(err) = session.poll_mailbox(&client).await {
                     let id = &session.id;
-                    println!("[{id}] Mailbox poll failed: {err:#}");
+                    warn!("[{id}] Mailbox poll failed: {err:#}");
                 }
             });
         }
@@ -193,7 +197,7 @@ impl Session {
     ) -> Result<(), (StatusCode, String)> {
         let id = &self.id;
         let response = result.map_err(|err| {
-            println!("[{id}] Rejected response: {err:#}");
+            warn!("[{id}] Rejected response: {err:#}");
             (StatusCode::BAD_REQUEST, format!("{err:#}"))
         })?;
 
@@ -204,7 +208,7 @@ impl Session {
         }
         match &response.result {
             CredentialResult::Granted(grant) => {
-                println!("[{id}] Accepted response: granted");
+                info!("[{id}] Accepted response: granted");
                 let session = self.clone();
                 let credential = grant.credential.clone();
                 tokio::spawn(async move {
@@ -213,7 +217,7 @@ impl Session {
             }
             CredentialResult::Error(err) => {
                 let code = &err.code;
-                println!("[{id}] Accepted response: declined: {code:?}");
+                info!("[{id}] Accepted response: declined: {code:?}");
             }
         }
         *accepted = Some(response);
@@ -226,8 +230,8 @@ impl Session {
             .await
             .map_err(|err| format!("{err:#}"));
         match &wallet_info {
-            Ok(_) => println!("[{id}] Fetched wallet info"),
-            Err(err) => println!("[{id}] Wallet info unavailable: {err}"),
+            Ok(_) => info!("[{id}] Fetched wallet info"),
+            Err(err) => warn!("[{id}] Wallet info unavailable: {err}"),
         }
         *self.wallet_info.lock().unwrap() = Some(wallet_info);
     }
@@ -241,7 +245,8 @@ impl Session {
             CredentialsRef::ClientCredentials(&credentials),
         )?;
         let client_info = wallet.client_info().await?;
-        let client_info = lexe::serde_json::to_string_pretty(&client_info)?;
+        let client_info =
+            escape_html(&lexe::serde_json::to_string_pretty(&client_info)?);
         let node_info = wallet.node_info().await?;
         let lightning_sat = node_info.lightning_balance.sats_u64();
         let onchain_sat = node_info.onchain_balance.sats_u64();
@@ -260,7 +265,7 @@ impl Session {
 impl Mode {
     const ALL: [Self; 3] = [Self::Post, Self::Redirect, Self::Mailbox];
 
-    fn id(self) -> &'static str {
+    fn as_str(self) -> &'static str {
         match self {
             Self::Post => "post",
             Self::Redirect => "redirect",
@@ -325,7 +330,7 @@ async fn index(
 
     let modes = Mode::ALL
         .map(|mode| {
-            let id = mode.id();
+            let id = mode.as_str();
             let label = mode.label();
             let active = if mode == session.mode {
                 r#" class="active""#
@@ -406,19 +411,23 @@ async fn status(
                     "<p class=\"hint\">Fetching wallet info...</p>".to_owned()
                 }
                 Some(Ok(info)) => format!("<div data-done>{info}</div>"),
-                Some(Err(err)) => format!(
-                    "<p class=\"error\" data-done>\
-                     Wallet info unavailable: {err}</p>"
-                ),
+                Some(Err(err)) => {
+                    let err = escape_html(err);
+                    format!(
+                        "<p class=\"error\" data-done>\
+                         Wallet info unavailable: {err}</p>"
+                    )
+                }
             };
             format!("<h2 class=\"ok\">Connected</h2>{wallet_info}")
         }
         CredentialResult::Error(err) => {
-            let code = &err.code;
-            let message = err.message.as_deref().unwrap_or_default();
+            let code = escape_html(&format!("{:?}", err.code));
+            let message =
+                escape_html(err.message.as_deref().unwrap_or_default());
             format!(
                 "<h2 class=\"error\" data-done>Declined</h2>\
-                 <p class=\"hint\">{code:?}: {message}</p>"
+                 <p class=\"hint\">{code}: {message}</p>"
             )
         }
     };
@@ -471,7 +480,10 @@ fn expired_page() -> Response {
     error_page(StatusCode::NOT_FOUND, "Session expired", hint)
 }
 
+/// An error card. `title` and `hint` are plain text.
 fn error_page(status: StatusCode, title: &str, hint: &str) -> Response {
+    let title = escape_html(title);
+    let hint = escape_html(hint);
     let body = page(&format!(
         "<h2 class=\"error\">{title}</h2>\
          <p class=\"hint\">{hint}</p>\
@@ -499,4 +511,20 @@ fn page(content: &str) -> Html<String> {
 </div>
 "#
     ))
+}
+
+/// Escapes text for HTML element content and quoted attribute values.
+fn escape_html(text: &str) -> String {
+    let mut escaped = String::with_capacity(text.len());
+    for c in text.chars() {
+        match c {
+            '&' => escaped.push_str("&amp;"),
+            '<' => escaped.push_str("&lt;"),
+            '>' => escaped.push_str("&gt;"),
+            '"' => escaped.push_str("&quot;"),
+            '\'' => escaped.push_str("&#39;"),
+            _ => escaped.push(c),
+        }
+    }
+    escaped
 }

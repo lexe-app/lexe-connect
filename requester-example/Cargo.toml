@@ -13,7 +13,6 @@ lexe = "0.1"
 lexe-connect = "0.1"
 lexe-crypto = "0.1"
 
-anyhow = "1"
 axum = "0.8"
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "net", "rt-multi-thread"] }
